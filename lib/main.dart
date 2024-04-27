@@ -26,7 +26,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.yellow),
         useMaterial3: true,
+        
+        
+        
       ),
+      debugShowCheckedModeBanner: false,
       home: HomePage()
     );
   }
