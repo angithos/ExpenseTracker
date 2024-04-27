@@ -76,8 +76,9 @@ class _MyBarGraphState extends State<MyBarGraph> {
     fontSize: 14,
 
     );
+    int monthIndex = (value.toInt()% 12) ;
     String text;
-    switch (value.toInt()%12) {
+    switch (monthIndex) {
       case 0:
         text='J';
         break;
@@ -114,6 +115,7 @@ class _MyBarGraphState extends State<MyBarGraph> {
         case 11:
         text='D';
         break;
+        
         
       default:
       text='';
