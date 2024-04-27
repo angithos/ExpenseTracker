@@ -157,7 +157,7 @@ void openDeleteBox(Expense expense)
 
         //return UI
         return Scaffold(
-       
+       backgroundColor: Colors.grey.shade300,
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             openNewExpenseBox();
@@ -241,7 +241,8 @@ void openDeleteBox(Expense expense)
           //save to db
 
           await context.read<ExpenseDatabase>().createNewExpense(newExpense);
-
+        //refresh graph
+        refreshGraphData();
           //clear controllers
           nameController.clear();
           amountController.clear();
@@ -273,6 +274,7 @@ int existingId =expense.id;
 await context
 .read<ExpenseDatabase>()
 .updateExpense(existingId, updatedExpense);
+refreshGraphData();
         //
       }
     },
@@ -298,7 +300,7 @@ await context
   //delete expense from db
 
   await context.read<ExpenseDatabase>().deleteExpense(id);
-
+refreshGraphData();
     },
     child:const Text("Delete"),
     );
