@@ -21,7 +21,7 @@ class _HomePageState extends State<HomePage> {
   TextEditingController nameController = TextEditingController();
   TextEditingController amountController = TextEditingController();
 //scaffold key
-final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   var amountStyle = TextStyle(
     fontSize: 16,
   );
@@ -163,7 +163,7 @@ final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
       }).toList();
       //return UI
       return Scaffold(
-        key: _scaffoldKey,
+        
         backgroundColor: Colors.grey.shade300,
         floatingActionButton: FloatingActionButton(
           onPressed: () {
@@ -192,52 +192,10 @@ final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
             },
           ),
         //changes made 
-        leading: IconButton(
-              icon: Icon(Icons.menu),
-              onPressed: () {
-                _scaffoldKey.currentState!.openDrawer();
-              },
-            ),
+       
         ),
         //list tile drawer
-        drawer: Drawer(
-  child: ListView(
-    padding: EdgeInsets.zero,
-    children: <Widget>[
-      Container(
-        padding: EdgeInsets.only(top: 40,left: 10,right: 10,bottom: 0),
-        height: 80, // Adjust this value as needed
-        decoration: BoxDecoration(
-          color: Colors.grey.shade500,
-        ),
-        child: Text(
-            'Options',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-            ),
-          ),
-        
-      ),
-      // ListTile for Home
-      ListTile(
-        title: Text('Home'),
-        onTap: () {
-          Navigator.pop(context); // Close the drawer
-          // Handle Home option action if needed
-        },
-      ),
-      // ListTile for Settings
-      ListTile(
-        title: Text('Settings'),
-        onTap: () {
-          Navigator.pop(context); // Close the drawer
-          // Handle Settings option action if needed
-        },
-      ),
-    ],
-  ),
-),
+       
         body: SafeArea(
           child: Column(
             children: [
