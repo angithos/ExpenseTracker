@@ -20,25 +20,31 @@ class _HomePageState extends State<HomePage> {
   //text controllers
   TextEditingController nameController = TextEditingController();
   TextEditingController amountController = TextEditingController();
+//scaffold key
+final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   var amountStyle = TextStyle(
     fontSize: 16,
   );
 
-  //future to load bar graph
-Future<Map<int,double>>? _monthlyTotalsFuture;
-
-@override
+  //future to load bar graph and monthly total
+  Future<Map<String, double>>? _monthlyTotalsFuture;
+  Future<double>? _calculateCurrentMonthTotal;
+  @override
   void initState() {
     Provider.of<ExpenseDatabase>(context, listen: false).readExpenses();
-    refreshGraphData();
+    refreshData();
     // TODO: implement initState
     super.initState();
   }
-  
-void refreshGraphData(){
-  _monthlyTotalsFuture=Provider.of<ExpenseDatabase>(context,listen: false).calculateMonthlyTotals();
-}
-  
+
+  void refreshData() {
+    _monthlyTotalsFuture = Provider.of<ExpenseDatabase>(context, listen: false)
+        .calculateMonthlyTotals();
+    _calculateCurrentMonthTotal =
+        Provider.of<ExpenseDatabase>(context, listen: false)
+            .calculateCurrentMonthTotal();
+  }
+
   void openEditBox(Expense expense) {
     //pre-load exisiting value
 
@@ -74,8 +80,6 @@ void refreshGraphData(){
     );
   }
 
-  
-
   void openNewExpenseBox() {
     showDialog(
       context: context,
@@ -107,12 +111,11 @@ void refreshGraphData(){
   }
 
   //delete box
-void openDeleteBox(Expense expense)
-{
-  showDialog(
+  void openDeleteBox(Expense expense) {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("delete expense"),
+        title: Text("Do you want to delete this expense"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           // children: [
@@ -129,75 +132,169 @@ void openDeleteBox(Expense expense)
         ),
         actions: [
           //cancel btn
-          
+
           _cancelButton(),
           _deleteExpenseButton(expense.id),
           //save button
         ],
       ),
     );
-}
+  }
 //open edit box
 
 //open delete box
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ExpenseDatabase>(
-      builder: (context, value, child) {
+    return Consumer<ExpenseDatabase>(builder: (context, value, child) {
       //get dates
-    int startMonth =value.getStartMonth();
-    int startYear =value.getStartYear();
-    int currentMonth=DateTime.now().month;
-    int currentYear=DateTime.now().year;
+      int startMonth = value.getStartMonth();
+      int startYear = value.getStartYear();
+      int currentMonth = DateTime.now().month;
+      int currentYear = DateTime.now().year;
 
       //calcualte the number of months since the first month
-    int monthCount=calculateMonthCount(startYear,startMonth,currentYear,currentMonth);
-      //only display the expense for the current month 
-
-        //return UI
-        return Scaffold(
-       backgroundColor: Colors.grey.shade300,
+      int monthCount =
+          calculateMonthCount(startYear, startMonth, currentYear, currentMonth);
+      //only display the expense for the current month
+      List<Expense> currentMonthExpenses = value.allExpense.where((expense) {
+        return expense.date.year == currentYear &&
+            expense.date.month == currentMonth;
+      }).toList();
+      //return UI
+      return Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: Colors.grey.shade300,
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             openNewExpenseBox();
           },
           child: Icon(Icons.add),
         ),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: FutureBuilder<double>(
+            future: _calculateCurrentMonthTotal,
+            builder: (context, snapshot) {
+              //laoded
+              if (snapshot.connectionState == ConnectionState.done) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('\ BHD${snapshot.data!.toStringAsFixed(2)}'),
+                    Text(getCurrentMonthName())
+                  ],
+                );
+              } else {
+                return Text("Loading..");
+              }
+              //loading
+            },
+          ),
+        //changes made 
+        leading: IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () {
+                _scaffoldKey.currentState!.openDrawer();
+              },
+            ),
+        ),
+        //list tile drawer
+        drawer: Drawer(
+  child: ListView(
+    padding: EdgeInsets.zero,
+    children: <Widget>[
+      Container(
+        padding: EdgeInsets.only(top: 40,left: 10,right: 10,bottom: 0),
+        height: 80, // Adjust this value as needed
+        decoration: BoxDecoration(
+          color: Colors.grey.shade500,
+        ),
+        child: Text(
+            'Options',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+            ),
+          ),
+        
+      ),
+      // ListTile for Home
+      ListTile(
+        title: Text('Home'),
+        onTap: () {
+          Navigator.pop(context); // Close the drawer
+          // Handle Home option action if needed
+        },
+      ),
+      // ListTile for Settings
+      ListTile(
+        title: Text('Settings'),
+        onTap: () {
+          Navigator.pop(context); // Close the drawer
+          // Handle Settings option action if needed
+        },
+      ),
+    ],
+  ),
+),
         body: SafeArea(
           child: Column(
             children: [
               SizedBox(
-              height: 250,
-                child: FutureBuilder(future: _monthlyTotalsFuture, builder: (context,snapshot){
-                  if(snapshot.connectionState==ConnectionState.done){
-                    final monthlyTotals=snapshot.data ??{};
-                
-                    //create the list of montly summary
-                    List<double> monthlySummary =List.generate(monthCount, (index) => monthlyTotals[startMonth+index]?? 0.0);
-                    return MyBarGraph(monthlySummary: monthlySummary, startMonth: startMonth);
-                  }
-                  else {
-                    return const Center(child: Text("Loading.."),
-                    );
-                  }
-                }),
+                height: 250,
+                child: FutureBuilder(
+                    future: _monthlyTotalsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        Map<String, double> monthlyTotals = snapshot.data ?? {};
+
+                        //create the list of montly summary
+                        List<double> monthlySummary =
+                            List.generate(monthCount, (index) {
+                          //calculate the year and the month
+                          int year = startYear + (startMonth + index - 1) ~/ 12;
+                          int month = (startMonth + index - 1) % 12 + 1;
+
+                          //create the key in the format of year month
+                          String yearMonthKey = '$year-$month';
+                          return monthlyTotals[yearMonthKey] ?? 0.0;
+                        });
+                        return MyBarGraph(
+                            monthlySummary: monthlySummary,
+                            startMonth: startMonth);
+                      } else {
+                        return const Center(
+                          child: Text("Loading.."),
+                        );
+                      }
+                    }),
+              ),
+              const SizedBox(
+                height: 25,
               ),
               Expanded(
                 child: ListView.builder(
-                    padding: EdgeInsets.only(left: 10, right: 10, top: 20, bottom: 10),
-                    itemCount: value.allExpense.length,
+                    padding: EdgeInsets.only(
+                        left: 10, right: 10, top: 20, bottom: 10),
+                    itemCount: currentMonthExpenses.length,
                     itemBuilder: (context, index) {
+                      //reverse the list to show the latest item
+                      int reversedIndex =
+                          currentMonthExpenses.length - 1 - index;
                       //get individual expenses
-                      Expense individualExpense = value.allExpense[index];
-                
+                      Expense individualExpense =
+                          currentMonthExpenses[reversedIndex];
+
                       //return  list tile ui
-                
+
                       return MylistTile(
                         title: individualExpense.name,
                         trailing: FormatAmount(individualExpense.amount),
-                        onEditPressed: (context) => openEditBox(individualExpense),
-                        onDeletePressed: (context) => openDeleteBox(individualExpense),
+                        onEditPressed: (context) =>
+                            openEditBox(individualExpense),
+                        onDeletePressed: (context) =>
+                            openDeleteBox(individualExpense),
                       );
                     }),
               ),
@@ -205,20 +302,19 @@ void openDeleteBox(Expense expense)
           ),
         ),
       );
-      }
-    );
+    });
   }
 
   //cancel btn
   Widget _cancelButton() {
     return MaterialButton(
+      
       onPressed: () {
         Navigator.pop(context);
         nameController.clear();
         amountController.clear();
       },
       //pop box
-
       child: const Text("cancel"),
     );
   }
@@ -241,8 +337,8 @@ void openDeleteBox(Expense expense)
           //save to db
 
           await context.read<ExpenseDatabase>().createNewExpense(newExpense);
-        //refresh graph
-        refreshGraphData();
+          //refresh graph
+          refreshData();
           //clear controllers
           nameController.clear();
           amountController.clear();
@@ -253,56 +349,53 @@ void openDeleteBox(Expense expense)
   }
 
   Widget _editExpenseButton(Expense expense) {
-    return MaterialButton(onPressed: () async {
-      if (nameController.text.isNotEmpty || amountController.text.isNotEmpty) {
-        //pop the box
-        Navigator.pop(context);
+    return MaterialButton(
+      onPressed: () async {
+        if (nameController.text.isNotEmpty ||
+            amountController.text.isNotEmpty) {
+          //pop the box
+          Navigator.pop(context);
 
-        //create a updated expense
-        Expense updatedExpense = Expense(
-            name: nameController.text.isNotEmpty
-                ? nameController.text
-                : expense.name,
-            amount: amountController.text.isNotEmpty
-            ?convertStringToDouble(amountController.text)
-            : expense.amount,
-            date: DateTime.now());
+          //create a updated expense
+          Expense updatedExpense = Expense(
+              name: nameController.text.isNotEmpty
+                  ? nameController.text
+                  : expense.name,
+              amount: amountController.text.isNotEmpty
+                  ? convertStringToDouble(amountController.text)
+                  : expense.amount,
+              date: DateTime.now());
 
-        //old expense id
-int existingId =expense.id;
-        //save it to database
-await context
-.read<ExpenseDatabase>()
-.updateExpense(existingId, updatedExpense);
-refreshGraphData();
-        //
-      }
-    },
-    child: Text("Edit"),);
+          //old expense id
+          int existingId = expense.id;
+          //save it to database
+          await context
+              .read<ExpenseDatabase>()
+              .updateExpense(existingId, updatedExpense);
+          refreshData();
+          //
+        }
+      },
+      child: Text("Edit"),
+    );
   }
-
-
-
-
-
 
   //save btn
 
-
-
   //delet btn
 
-  Widget _deleteExpenseButton(int id){
-    return MaterialButton(onPressed: ()async{
-  //pop box
-  Navigator.pop(context);
+  Widget _deleteExpenseButton(int id) {
+    return MaterialButton(
+      onPressed: () async {
+        //pop box
+        Navigator.pop(context);
 
-  //delete expense from db
+        //delete expense from db
 
-  await context.read<ExpenseDatabase>().deleteExpense(id);
-refreshGraphData();
-    },
-    child:const Text("Delete"),
+        await context.read<ExpenseDatabase>().deleteExpense(id);
+        refreshData();
+      },
+      child: const Text("Delete"),
     );
   }
 }

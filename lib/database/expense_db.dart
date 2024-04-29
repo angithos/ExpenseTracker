@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:expensetracker/models/expense.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
@@ -64,21 +66,50 @@ Future<void> deleteExpense(int id) async {
 
 
 //help
-Future<Map<int,double>> calculateMonthlyTotals() async {
+Future<Map<String,double>> calculateMonthlyTotals() async {
   await readExpenses();
 
-  Map <int,double> monthlyTotals ={
+  Map <String,double> monthlyTotals ={
   };
 
   for  (var expense in _allExpenses){
-  int month=expense.date.month;
-  if(!monthlyTotals.containsKey(month)){
-    monthlyTotals[month]=0;
+
+    //get year and month 
+ String yearMonth ='${expense.date.year}-${expense.date.month}';
+
+ //if year- month is not yet in the map
+
+  if(!monthlyTotals.containsKey(yearMonth)){
+    monthlyTotals[yearMonth]=0;
   }
-  monthlyTotals[month]=monthlyTotals[month]! +expense.amount;
+  monthlyTotals[yearMonth]=monthlyTotals[yearMonth]! +expense.amount;
   }
   return monthlyTotals;
   
+}
+
+
+ //calculate monthly totals
+Future<double> calculateCurrentMonthTotal() async {
+  //ensure the exp is read from db
+await readExpenses();
+
+
+  //get the current and year
+
+int currentMonth =DateTime.now().month;
+int currentYear=DateTime.now().year;
+
+
+  //filter the expenses to include only this month
+List<Expense> currentMonthExpenses =_allExpenses.where((expense) {
+return expense.date.month ==currentMonth && expense.date.year ==currentYear;
+}).toList();
+
+
+  //calculate total amount for the current month
+double total =currentMonthExpenses.fold(0, (sum, expense) => sum+expense.amount);
+return total;
 }
 
 int getStartMonth(){
